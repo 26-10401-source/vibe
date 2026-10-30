@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spider-Man: 3D Web Swinger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@500;700;900&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #fff;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .font-spidey {
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 1.5px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Spidey Web Crosshair */
+        .web-crosshair {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.8), inset 0 0 8px rgba(59, 130, 246, 0.8);
+        }
+
+        .spidey-glow {
+            text-shadow: 0 0 16px rgba(239, 68, 68, 0.9);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center p-0 m-0 bg-sky-200 text-white relative">
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvasContainer" class="relative w-full h-full bg-sky-300 overflow-hidden cursor-crosshair">
+        <canvas id="webglCanvas" class="w-full h-full block"></canvas>
+
+        <!-- Aim Crosshair HUD Center -->
+        <div id="crosshair" class="hidden pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-full border-2 border-red-500 web-crosshair flex items-center justify-center relative bg-red-500/10">
+                <div class="w-2.5 h-2.5 rounded-full bg-cyan-300 shadow-md"></div>
+                <!-- Spidey Eye Crosshair Outline -->
+                <div class="absolute -top-1.5 w-0.5 h-3.5 bg-red-500"></div>
+                <div class="absolute -bottom-1.5 w-0.5 h-3.5 bg-red-500"></div>
+                <div class="absolute -left-1.5 h-0.5 w-3.5 bg-red-500"></div>
+                <div class="absolute -right-1.5 h-0.5 w-3.5 bg-red-500"></div>
+            </div>
+        </div>
+
+        <!-- Top Status HUD -->
+        <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 pointer-events-none z-20 flex justify-between items-start gap-4">
+            <!-- Left Stats: Villains Defeated & Saved Civilians -->
+            <div class="flex gap-3">
+                <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 border-l-4 border-l-red-500 text-slate-900">
+                    <i class="fa-solid fa-spider text-2xl text-red-600"></i>
+                    <div>
+                        <div class="text-[10px] font-black text-slate-700">처치한 악당</div>
+                        <div id="villainCount" class="text-2xl font-spidey text-red-600">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 border-l-4 border-l-cyan-500 text-slate-900">
+                    <i class="fa-solid fa-building text-2xl text-cyan-600"></i>
+                    <div>
+                        <div class="text-[10px] font-black text-slate-700">구출한 시민</div>
+                        <div id="savedCount" class="text-2xl font-spidey text-cyan-700">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Combo & Speed HUD -->
+            <div class="glass-panel px-6 py-2 rounded-2xl flex flex-col items-center justify-center text-center border-t-2 border-t-blue-500 text-slate-900">
+                <span id="comboText" class="text-xs font-spidey text-yellow-600 tracking-wider">웹 스윙 스피드</span>
+                <span id="speedDisplay" class="text-xl font-bold text-slate-800">0 KM/H</span>
+            </div>
+
+            <!-- Right Web Energy Bar -->
+            <div class="glass-panel p-3 rounded-2xl flex flex-col gap-1.5 w-56 border-r-4 border-r-blue-600 text-slate-900">
+                <div class="flex justify-between items-center text-[10px] font-bold">
+                    <span class="text-blue-700 font-spidey text-xs"><i class="fa-solid fa-dharmachakra mr-1"></i>웹 슈터 겔</span>
+                    <span id="webEnergyText" class="text-slate-800">100%</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-300/80 rounded-full overflow-hidden border border-slate-400">
+                    <div id="webEnergyFill" class="h-full bg-gradient-to-r from-red-500 via-blue-600 to-cyan-400 w-full transition-all duration-150"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Guide Banner -->
+        <div id="guideBanner" class="hidden pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 z-20 glass-panel px-6 py-2.5 rounded-full border border-white/40 flex items-center gap-3 text-xs font-bold text-slate-800 shadow-xl">
+            <span><i class="fa-solid fa-person-running text-red-600 mr-1"></i>WASD: 이동</span>
+            <span class="text-slate-400">|</span>
+            <span><i class="fa-solid fa-hand text-blue-600 mr-1"></i>E 키 / 우클릭: 웹 스윙</span>
+            <span class="text-slate-400">|</span>
+            <span><i class="fa-solid fa-crosshairs text-cyan-600 mr-1"></i>좌클릭: 거미줄 공격</span>
+            <span class="text-slate-400">|</span>
+            <span>Space: 점프</span>
+        </div>
+
+        <!-- Game Start Screen -->
+        <div id="startScreen" class="absolute inset-0 z-40 glass-panel bg-sky-900/40 flex flex-col items-center justify-between p-6 text-center">
+            <div class="mt-8 flex flex-col items-center">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/20 border border-red-500/50 text-red-100 text-xs font-bold mb-3 tracking-wider shadow-lg">
+                    <i class="fa-solid fa-spider"></i> SPIDER-MAN 3D DAYLIGHT HERO
+                </div>
+                <h1 class="text-4xl sm:text-6xl font-spidey text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-blue-600 to-cyan-300 spidey-glow tracking-wide drop-shadow-xl">
+                    SPIDER-MAN: WEB SWINGER
+                </h1>
+                <p class="text-white text-xs sm:text-sm mt-3 font-bold drop-shadow-md">화사한 뉴욕 빌딩 숲에서 최고의 3D 웹 스윙을 경험하세요!</p>
+            </div>
+
+            <div class="w-full max-w-md my-auto space-y-3 text-left glass-panel bg-slate-900/70 p-5 rounded-3xl border border-white/20 text-white">
+                <h3 class="font-spidey text-lg text-red-400 flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> 3D 조작 가이드</h3>
+                <ul class="text-xs space-y-2 text-slate-200">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-yellow-400"></i> <b>마우스 이동</b>: 360도 및 상하 시점 완벽 조율</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-red-400"></i> <b>WASD</b>: 시점 정면 기준 뒤돌아보기 없이 이동</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <b>E 키 / 마우스 우클릭</b>: 고품질 거미줄 웹 스윙</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-400"></i> <b>마우스 좌클릭</b>: 정밀 타겟 거미줄 샷</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-yellow-400"></i> <b>Space</b>: 점프 및 대시</li>
+                </ul>
+            </div>
+
+            <div class="w-full max-w-md mb-6">
+                <button id="btnStart" class="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-blue-600 to-cyan-500 hover:brightness-110 font-spidey text-2xl text-white tracking-wider shadow-2xl active:scale-98 transition flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-spider"></i> 웹 스윙 출동!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio Synthesizer Engine ---
+        class SpideyAudioEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playWebShoot() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.12);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            playSwingWoosh() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+
+            playHitVillain() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(250, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playSaved() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
+                osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+        }
+
+        const audio = new SpideyAudioEngine();
+
+        // --- Core Variables ---
+        let scene, camera, renderer;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2(0, 0);
+
+        let spideyGroup;
+        let spideyVel = new THREE.Vector3(0, 0, 0);
+
+        // Camera rotation angles
+        let cameraYaw = 0;   // Horizontal rotation (radians)
+        let cameraPitch = 0; // Vertical rotation (radians)
+
+        let isWebSwinging = false;
+        let webAnchorPoint = null;
+        let webLineMesh = null;
+        let webEnergy = 100;
+
+        let buildings = [];
+        let villains = [];
+        let civilians = [];
+        let webProjectiles = [];
+
+        let villainKills = 0;
+        let savedCivilians = 0;
+        let gameActive = false;
+
+        let keys = { w: false, a: false, s: false, d: false, space: false, e: false };
+
+        // --- Three.js Scene Setup (Bright Daytime & High Quality) ---
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            // Vibrant Bright Blue Sky
+            scene.background = new THREE.Color(0x7dd3fc);
+            scene.fog = new THREE.FogExp2(0xbae6fd, 0.0035);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 800);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webglCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+
+            // Bright Multi-Light Setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x334155, 0.8);
+            scene.add(hemiLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.8);
+            sunLight.position.set(80, 150, -60);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 10;
+            sunLight.shadow.camera.far = 400;
+            const d = 120;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            scene.add(sunLight);
+
+            buildCityEnvironment();
+            createSpiderManModel();
+            createWebLine();
+        }
+
+        // --- High Detail Spider-Man Character Model ---
+        function createSpiderManModel() {
+            spideyGroup = new THREE.Group();
+
+            const redSuitMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, metalness: 0.1 });
+            const blueSuitMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4, metalness: 0.1 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.38, 24, 24);
+            const head = new THREE.Mesh(headGeo, redSuitMat);
+            head.position.y = 1.6;
+            head.castShadow = true;
+
+            // White Eyes
+            const eyeGeo = new THREE.BoxGeometry(0.14, 0.08, 0.05);
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeL.position.set(-0.12, 1.63, 0.35);
+            eyeR.position.set(0.12, 1.63, 0.35);
+            eyeL.rotation.z = -0.15;
+            eyeR.rotation.z = 0.15;
+            spideyGroup.add(head, eyeL, eyeR);
+
+            // Torso
+            const bodyGeo = new THREE.BoxGeometry(0.8, 0.9, 0.45);
+            const body = new THREE.Mesh(bodyGeo, redSuitMat);
+            body.position.y = 0.95;
+            body.castShadow = true;
+            spideyGroup.add(body);
+
+            // Spider Chest Logo (Black)
+            const logoGeo = new THREE.SphereGeometry(0.1, 8, 8);
+            const logoMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+            const logo = new THREE.Mesh(logoGeo, logoMat);
+            logo.scale.set(1, 1.5, 0.2);
+            logo.position.set(0, 1.05, 0.23);
+            spideyGroup.add(logo);
+
+            // Blue Side Flanks
+            const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.46), blueSuitMat);
+            const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.46), blueSuitMat);
+            sideL.position.set(-0.35, 0.95, 0);
+            sideR.position.set(0.35, 0.95, 0);
+            spideyGroup.add(sideL, sideR);
+
+            // Legs
+            const legGeo = new THREE.BoxGeometry(0.32, 0.8, 0.32);
+            const legL = new THREE.Mesh(legGeo, blueSuitMat);
+            const legR = new THREE.Mesh(legGeo, blueSuitMat);
+            legL.position.set(-0.2, 0.4, 0);
+            legR.position.set(0.2, 0.4, 0);
+            legL.castShadow = true;
+            legR.castShadow = true;
+            spideyGroup.add(legL, legR);
+
+            // Boots
+            const bootGeo = new THREE.BoxGeometry(0.33, 0.3, 0.34);
+            const bootL = new THREE.Mesh(bootGeo, redSuitMat);
+            const bootR = new THREE.Mesh(bootGeo, redSuitMat);
+            bootL.position.set(-0.2, 0.15, 0);
+            bootR.position.set(0.2, 0.15, 0);
+            spideyGroup.add(bootL, bootR);
+
+            spideyGroup.position.set(0, 20, 0);
+            scene.add(spideyGroup);
+        }
+
+        // --- High Quality City Grid Environment ---
+        function buildCityEnvironment() {
+            // Ground Road Assembly
+            const groundGeo = new THREE.PlaneGeometry(400, 400);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Road Markings Grid
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+            for (let i = -180; i <= 180; i += 25) {
+                const lineGeo = new THREE.PlaneGeometry(1.5, 400);
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(i, 0.05, 0);
+                scene.add(line);
+            }
+
+            // High Quality Building Materials
+            const buildingColors = [0x1e293b, 0x0f172a, 0x334155, 0x475569, 0x1e1b4b];
+
+            // Generate Skyscrapers
+            for (let x = -150; x <= 150; x += 30) {
+                for (let z = -150; z <= 150; z += 30) {
+                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
+
+                    const h = 35 + Math.random() * 65;
+                    const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                    const bMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.2 });
+
+                    const bGeo = new THREE.BoxGeometry(22, h, 22);
+                    const building = new THREE.Mesh(bGeo, bMat);
+                    building.position.set(x, h / 2, z);
+                    building.castShadow = true;
+                    building.receiveShadow = true;
+                    scene.add(building);
+                    buildings.push(building);
+
+                    // Rooftop Structure / Edge Trim
+                    const roofTrimGeo = new THREE.BoxGeometry(22.8, 1.2, 22.8);
+                    const roofTrimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4 });
+                    const roofTrim = new THREE.Mesh(roofTrimGeo, roofTrimMat);
+                    roofTrim.position.set(x, h, z);
+                    scene.add(roofTrim);
+
+                    // Antenna / Helipad Detail
+                    if (Math.random() > 0.5) {
+                        const antGeo = new THREE.CylinderGeometry(0.2, 0.4, 8);
+                        const antMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+                        const ant = new THREE.Mesh(antGeo, antMat);
+                        ant.position.set(x, h + 4, z);
+                        scene.add(ant);
+                    }
+
+                    // Glass Window Panels (Reflective Sky)
+                    const winMat = new THREE.MeshStandardMaterial({
+                        color: 0x38bdf8,
+                        roughness: 0.1,
+                        metalness: 0.8,
+                        transparent: true,
+                        opacity: 0.85
+                    });
+                    const winGeo = new THREE.PlaneGeometry(20, h * 0.75);
+                    const winMesh = new THREE.Mesh(winGeo, winMat);
+                    winMesh.position.set(x, h / 2, z + 11.08);
+                    scene.add(winMesh);
+
+                    // Spawn Target Entities on Rooftops
+                    if (Math.random() < 0.4) {
+                        spawnRooftopTarget(x, h + 1, z);
+                    }
+                }
+            }
+        }
+
+        function createWebLine() {
+            const geo = new THREE.BufferGeometry();
+            const mat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 4 });
+            webLineMesh = new THREE.Line(geo, mat);
+            webLineMesh.visible = false;
+            scene.add(webLineMesh);
+        }
+
+        // --- Rooftop Target Entities ---
+        function spawnRooftopTarget(x, y, z) {
+            const isVillain = Math.random() < 0.65;
+            const group = new THREE.Group();
+
+            if (isVillain) {
+                // High Quality Villain Character
+                const bodyGeo = new THREE.BoxGeometry(1.0, 1.4, 0.8);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.3 });
+                const body = new THREE.Mesh(bodyGeo, mat);
+                body.position.y = 0.7;
+                body.castShadow = true;
+
+                const headGeo = new THREE.SphereGeometry(0.35, 12, 12);
+                const headMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+                const head = new THREE.Mesh(headGeo, headMat);
+                head.position.y = 1.6;
+
+                group.add(body, head);
+                group.userData = { type: 'villain' };
+                villains.push(group);
+            } else {
+                // Civilian
+                const bodyGeo = new THREE.BoxGeometry(0.8, 1.2, 0.7);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
+                const body = new THREE.Mesh(bodyGeo, mat);
+                body.position.y = 0.6;
+                body.castShadow = true;
+
+                group.add(body);
+                group.userData = { type: 'civilian' };
+                civilians.push(group);
+            }
+
+            group.position.set(x + (Math.random() - 0.5) * 10, y, z + (Math.random() - 0.5) * 10);
+            scene.add(group);
+        }
+
+        // --- Web Swinging Physics ---
+        function startWebSwing() {
+            if (webEnergy < 15 || isWebSwinging) return;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(buildings);
+
+            if (intersects.length > 0 && intersects[0].distance < 110) {
+                webAnchorPoint = intersects[0].point;
+                isWebSwinging = true;
+                webEnergy = Math.max(0, webEnergy - 8);
+                audio.playWebShoot();
+                audio.playSwingWoosh();
+            }
+        }
+
+        function stopWebSwing() {
+            isWebSwinging = false;
+            webAnchorPoint = null;
+            webLineMesh.visible = false;
+        }
+
+        function shootWebProjectile() {
+            audio.playWebShoot();
+
+            const projGeo = new THREE.SphereGeometry(0.35, 12, 12);
+            const projMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 });
+            const proj = new THREE.Mesh(projGeo, projMat);
+
+            proj.position.copy(spideyGroup.position).add(new THREE.Vector3(0, 1.2, 0));
+
+            raycaster.setFromCamera(mouse, camera);
+            const dir = raycaster.ray.direction.clone().normalize();
+
+            scene.add(proj);
+            webProjectiles.push({ mesh: proj, dir: dir, life: 1.8 });
+        }
+
+        // --- Main Game Loop ---
+        function updatePhysics(dt) {
+            // Gravity
+            if (!isWebSwinging) {
+                spideyVel.y -= 26 * dt;
+            } else if (webAnchorPoint) {
+                // Pendulum Swing Physics
+                const ropeVector = spideyGroup.position.clone().sub(webAnchorPoint);
+                const currentDist = ropeVector.length();
+
+                if (currentDist > 8) {
+                    const tensionDir = ropeVector.clone().normalize();
+                    spideyVel.addScaledVector(tensionDir, -42 * dt);
+                }
+
+                // Render Web Line
+                const positions = new Float32Array([
+                    spideyGroup.position.x, spideyGroup.position.y + 1.2, spideyGroup.position.z,
+                    webAnchorPoint.x, webAnchorPoint.y, webAnchorPoint.z
+                ]);
+                webLineMesh.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                webLineMesh.geometry.attributes.position.needsUpdate = true;
+                webLineMesh.visible = true;
+
+                // Pull Swing Forward in camera look direction
+                const forwardDir = new THREE.Vector3(
+                    -Math.sin(cameraYaw),
+                    0,
+                    -Math.cos(cameraYaw)
+                ).normalize();
+                spideyVel.addScaledVector(forwardDir, 26 * dt);
+            }
+
+            // Direction Vectors based on Camera Yaw
+            const forwardVector = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw));
+            const rightVector = new THREE.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw));
+
+            // WASD Character Movement
+            const moveSpeed = 20 * dt;
+            if (keys.w) spideyVel.addScaledVector(forwardVector, moveSpeed);
+            if (keys.s) spideyVel.addScaledVector(forwardVector, -moveSpeed);
+            if (keys.d) spideyVel.addScaledVector(rightVector, moveSpeed);
+            if (keys.a) spideyVel.addScaledVector(rightVector, -moveSpeed);
+
+            // Friction
+            spideyVel.x *= 0.96;
+            spideyVel.z *= 0.96;
+
+            // Apply Velocity
+            spideyGroup.position.addScaledVector(spideyVel, dt);
+
+            // Ground & Building Collision
+            let onGround = false;
+            if (spideyGroup.position.y <= 0) {
+                spideyGroup.position.y = 0;
+                spideyVel.y = 0;
+                onGround = true;
+            }
+
+            buildings.forEach(b => {
+                const box = new THREE.Box3().setFromObject(b);
+                if (box.containsPoint(spideyGroup.position)) {
+                    if (spideyGroup.position.y >= box.max.y - 1.8) {
+                        spideyGroup.position.y = box.max.y;
+                        spideyVel.y = 0;
+                        onGround = true;
+                    }
+                }
+            });
+
+            // Jump
+            if (keys.space && onGround) {
+                spideyVel.y = 20;
+                keys.space = false;
+            }
+
+            // Rotate Spidey Body to always face away from the camera
+            spideyGroup.rotation.y = cameraYaw + Math.PI;
+
+            // Camera positioning - Smooth Orbit TPS View
+            const camDistance = 8.0;
+            camera.position.x = spideyGroup.position.x + camDistance * Math.sin(cameraYaw) * Math.cos(cameraPitch);
+            camera.position.y = spideyGroup.position.y + 2.5 + camDistance * Math.sin(cameraPitch);
+            camera.position.z = spideyGroup.position.z + camDistance * Math.cos(cameraYaw) * Math.cos(cameraPitch);
+
+            const targetPos = spideyGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+            camera.lookAt(targetPos);
+
+            // Energy Recharge
+            webEnergy = Math.min(100, webEnergy + 12 * dt);
+
+            // Update Web Projectiles
+            for (let i = webProjectiles.length - 1; i >= 0; i--) {
+                const p = webProjectiles[i];
+                p.mesh.position.addScaledVector(p.dir, 60 * dt);
+                p.life -= dt;
+
+                // Hit Detection against Villains
+                villains.forEach((v, vIdx) => {
+                    if (p.mesh.position.distanceTo(v.position) < 2.0) {
+                        scene.remove(v);
+                        villains.splice(vIdx, 1);
+                        villainKills++;
+                        audio.playHitVillain();
+                        updateHUD();
+                    }
+                });
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    webProjectiles.splice(i, 1);
+                }
+            }
+
+            // Rescue Civilians on Proximity
+            civilians.forEach((c, cIdx) => {
+                if (spideyGroup.position.distanceTo(c.position) < 2.8) {
+                    scene.remove(c);
+                    civilians.splice(cIdx, 1);
+                    savedCivilians++;
+                    audio.playSaved();
+                    updateHUD();
+                }
+            });
+
+            // HUD Updates
+            const speedKm = Math.floor(spideyVel.length() * 3.6);
+            document.getElementById('speedDisplay').innerText = `${speedKm} KM/H`;
+            document.getElementById('webEnergyFill').style.width = `${webEnergy}%`;
+            document.getElementById('webEnergyText').innerText = `${Math.floor(webEnergy)}%`;
+        }
+
+        function updateHUD() {
+            document.getElementById('villainCount').innerText = villainKills;
+            document.getElementById('savedCount').innerText = savedCivilians;
+        }
+
+        function startGame() {
+            audio.init();
+            gameActive = true;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('crosshair').classList.remove('hidden');
+            document.getElementById('guideBanner').classList.remove('hidden');
+
+            // Request Pointer Lock for smooth FPS/TPS mouse looking
+            const canvasContainer = document.getElementById('canvasContainer');
+            if (canvasContainer.requestPointerLock) {
+                canvasContainer.requestPointerLock();
+            }
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('pointerdown', (e) => {
+            if (!gameActive) return;
+
+            // Re-acquire Pointer Lock if lost
+            const canvasContainer = document.getElementById('canvasContainer');
+            if (document.pointerLockElement !== canvasContainer && canvasContainer.requestPointerLock) {
+                canvasContainer.requestPointerLock();
+            }
+
+            if (e.button === 0) shootWebProjectile(); // Left Click
+            if (e.button === 2) startWebSwing();      // Right Click
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (e.button === 2) stopWebSwing();
+        });
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Mouse Look controls (Rotate Camera Pitch & Yaw)
+        window.addEventListener('mousemove', (e) => {
+            if (!gameActive) return;
+
+            const sensitivity = 0.0025;
+            let movementX = e.movementX || 0;
+            let movementY = e.movementY || 0;
+
+            cameraYaw -= movementX * sensitivity;
+            cameraPitch += movementY * sensitivity;
+
+            // Allow full vertical angle look up to sky (~89.5 deg) and down to feet (~ -89.5 deg)
+            const maxPitch = (Math.PI / 2) - 0.01;
+            cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            const k = e.key.toLowerCase();
+            if (k === 'w') keys.w = true;
+            if (k === 's') keys.s = true;
+            if (k === 'a') keys.a = true;
+            if (k === 'd') keys.d = true;
+            if (e.code === 'Space') keys.space = true;
+            if (k === 'e') startWebSwing();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w') keys.w = false;
+            if (k === 's') keys.s = false;
+            if (k === 'a') keys.a = false;
+            if (k === 'd') keys.d = false;
+            if (k === 'e') stopWebSwing();
+        });
+
+        // Window Resize Listener
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // --- Render Animation Loop ---
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.1); // Cap delta time for stability
+
+            if (gameActive) {
+                updatePhysics(dt);
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Initialize Scene and Start Button
+        window.onload = () => {
+            initThreeJS();
+            document.getElementById('btnStart').addEventListener('click', startGame);
+            animate();
+        };
+    </script>
+</body>
+</html>
