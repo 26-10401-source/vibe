@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온도 연동 네온 벽돌깨기</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:#090D1D;color:#F1F5FF}
+*{box-sizing:border-box}body{margin:0;background:#090D1D;color:#F1F5FF}.app{max-width:1400px;margin:auto;padding:16px}.header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 18px}.brand{display:flex;align-items:center;gap:9px}.logo{width:32px;height:32px;display:grid;place-items:center;background:#17233C;border:1px solid #354565;border-radius:9px;color:#69E6F5;font-size:19px}.kicker{color:#69E6F5;font-size:10px;font-weight:850;letter-spacing:1.8px}.subtitle{font-size:10px;color:#A1AEC9;margin-top:3px;letter-spacing:1px}.pill{font-size:10px;color:#83EBD2;border:1px solid #2B4C51;border-radius:20px;padding:6px 9px;white-space:nowrap}.layout{display:grid;grid-template-columns:minmax(0,1fr) 225px;gap:13px;align-items:start}.game-title{font-weight:900;font-size:clamp(23px,3vw,34px);letter-spacing:-1.2px;margin:6px 0}.muted{color:#929DBB;font-size:11px;line-height:1.7}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:10px}.stat{background:#12182B;border:1px solid #27314D;padding:8px;border-radius:9px;min-width:0}.stat small{font-size:9px;letter-spacing:.6px;color:#8994B1;font-weight:800}.stat strong{font-size:clamp(14px,2vw,19px);display:block;margin-top:4px;font-variant-numeric:tabular-nums}.board{border:1px solid #303B5C;overflow:hidden;border-radius:12px;background:#080D20}canvas{display:block;width:100%;height:auto;aspect-ratio:900/560;touch-action:none;cursor:crosshair}button{font:inherit;font-size:11px;font-weight:800;cursor:pointer;border-radius:9px;padding:11px 12px;background:#151D33;border:1px solid #35405F;color:#F1F5FF}button:hover{background:#242F4C}button:focus-visible,input:focus-visible{outline:2px solid #69E6F5;outline-offset:2px}.primary{background:#69E6F5;color:#08121F;border-color:#69E6F5}.actions{display:flex;gap:7px}.actions button:first-child{flex:1}.status{text-align:center;color:#A7B5D4;font-size:11px;min-height:32px;padding:10px 0}.speed-panel{margin-top:12px;padding:10px;border:1px solid #26314C;border-radius:10px;background:#10172A}.speed-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}.track{height:5px;background:#29314A;border-radius:6px;overflow:hidden}.fill{height:100%;width:40%;background:linear-gradient(90deg,#69E6F5,#FFCA80);border-radius:6px;transition:width .15s}.small{font-size:9px;color:#8290AF;line-height:1.8}.weather{background:linear-gradient(160deg,#17233B,#101629 78%);border:1px solid #303C5E;border-radius:14px;padding:15px 12px}.weather-head{display:flex;justify-content:space-between;align-items:center;gap:5px}.city-pill{font-size:9px;border:1px solid #33415D;border-radius:15px;padding:4px 6px;color:#A5B7D6}.weather-top{margin-top:12px}.weather-icon{font-size:37px;line-height:1.5}.temp{font-size:43px;letter-spacing:-2px;line-height:1.2;font-weight:850;margin:5px 0}.divider{height:1px;background:#2C3651;margin:14px 0}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.detail{background:#0D1427;border:1px solid #29334F;padding:9px 7px;border-radius:9px}.detail span{font-size:10px;color:#929DBB;display:block}.detail strong{font-size:15px;display:block;margin-top:5px}.input-row{display:flex;gap:6px;align-items:center}.temp-input{width:100%;min-width:0;border:1px solid #364363;border-radius:9px;background:#090F20;color:#F2F7FF;padding:10px;font-size:14px;font-weight:750}.apply{width:100%;margin-top:7px;background:#69E6F5;color:#08121F;border-color:#69E6F5}.rule{padding:8px 9px;border-radius:8px;font-size:10px;line-height:1.75;margin-top:6px}.hour-grid{display:block}.hour{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px 1px;border-bottom:1px solid #27314A;font-size:11px}.hour:last-child{border:0}.weather a{color:#70E8F7;font-size:10px;text-decoration:none}.weather a:hover{text-decoration:underline}
+@media(max-width:680px){.app{padding:12px}.layout{grid-template-columns:minmax(0,1fr)}.weather{padding:15px}.weather-top{display:grid;grid-template-columns:1fr 1fr;align-items:center}.hour-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:15px}.game-title{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="app" id="temp-brick-game">
+  <header class="header">
+    <div class="brand"><div class="logo">◈</div><div><div class="kicker">PIXEL LAB</div><div class="subtitle">TEMPERATURE ARCADE</div></div></div>
+    <div class="pill">● TEMP CONTROL</div>
+  </header>
+  <div class="layout">
+    <main style="min-width:0">
+      <div class="kicker">ARCADE / 001</div>
+      <div class="game-title">NEON <span style="color:#69E6F5">BREAKER</span></div>
+      <div class="muted" style="margin-bottom:12px">기온을 바꿔 보세요. 날씨가 공의 속도를 결정합니다!</div>
+      <div class="stats">
+        <div class="stat"><small>SCORE</small><strong id="tb-score" style="color:#69E6F5">00000</strong></div>
+        <div class="stat"><small>LIVES</small><strong id="tb-lives" style="color:#FF85A8">♥ ♥ ♥</strong></div>
+        <div class="stat"><small>LEVEL</small><strong id="tb-level" style="color:#BEA2FF">01</strong></div>
+        <div class="stat"><small>SPEED</small><strong id="tb-speed" style="color:#FFC986">1.0×</strong></div>
+      </div>
+      <div class="board"><canvas id="tb-canvas" width="900" height="560" tabindex="0" aria-label="벽돌깨기 게임. 마우스나 터치로 패들을 움직이세요.">벽돌깨기 게임 화면</canvas></div>
+      <div id="tb-status" class="status" aria-live="polite">시작 버튼을 눌러 공을 발사하세요!</div>
+      <div class="actions"><button id="tb-start" class="primary">▶ 게임 시작</button><button id="tb-reset">↻ 처음부터</button></div>
+      <div class="speed-panel">
+        <div class="speed-head"><span class="kicker" style="font-size:9px">EFFECTIVE BALL SPEED</span><strong id="tb-speed-percent" style="font-size:11px;color:#FFC986">100%</strong></div>
+        <div class="track"><div id="tb-speedbar" class="fill"></div></div>
+        <div id="tb-effect" class="small" style="margin-top:8px">온도 효과: 변화 없음 · 시간 보너스: 1.0×</div>
+      </div>
+      <div class="small" style="margin-top:11px">조작: 마우스 · 터치 · ← → · A / D<br>SPACE: 발사 또는 일시정지 · R: 재시작</div>
+    </main>
+    <aside class="weather">
+      <div class="weather-head"><div class="kicker">SEOUL WEATHER</div><span class="city-pill">SEOUL</span></div>
+      <div class="weather-top">
+        <div><div class="weather-icon">☀️</div><div class="temp" id="tb-temp-display">12°</div><div style="font-size:13px;font-weight:750;margin:4px 0 5px">맑음</div><div class="muted">게임 적용 온도</div></div>
+        <div style="padding-top:8px"><div class="muted">오늘 최고</div><div style="font-size:21px;font-weight:800;margin:3px 0 10px;color:#FFC986">14°C</div><div class="muted">오늘 최저</div><div style="font-size:21px;font-weight:800;margin:3px 0 10px;color:#91CCFF">4°C</div></div>
+      </div>
+      <div class="divider"></div>
+      <label for="tb-temperature" class="kicker" style="display:block;margin-bottom:8px">직접 온도 입력 (°C)</label>
+      <div class="input-row"><input id="tb-temperature" class="temp-input" type="number" inputmode="decimal" min="-50" max="60" step="1" value="12" aria-describedby="tb-temp-message" style="flex:1;width:0"><span style="font-size:12px;color:#ADB9D5">°C</span></div>
+      <button id="tb-apply-temp" class="apply">온도 적용 ↗</button>
+      <div id="tb-temp-message" aria-live="polite" class="small" style="margin-top:7px;min-height:30px">12°C · 온도 효과 없음</div>
+      <div class="divider"></div>
+      <div class="kicker" style="margin-bottom:7px">TEMPERATURE RULES</div>
+      <div class="rule" style="background:#34251F;border:1px solid #654531"><strong style="color:#FFC986">25°C 이상</strong><br><span style="color:#E6C4A9">공 속도 +25% · 빠르게</span></div>
+      <div class="rule" style="background:#132A32;border:1px solid #28545A"><strong style="color:#80E4E8">11°C ~ 24°C</strong><br><span style="color:#B4CDD7">온도에 따른 변화 없음</span></div>
+      <div class="rule" style="background:#1B2440;border:1px solid #354A75"><strong style="color:#A8C5FF">10°C 이하</strong><br><span style="color:#BBC9E8">공 속도 −25% · 느리게</span></div>
+      <div class="divider"></div>
+      <div class="kicker" style="margin-bottom:5px">EVENING FORECAST</div><div class="muted" style="margin-bottom:4px">오늘 저녁 시간별 예보</div>
+      <div class="hour-grid">
+        <div class="hour"><span style="color:#A2ADC8">17시</span><span>☀️</span><strong>12°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">18시</span><span>🌤️</span><strong>12°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">19시</span><span>🌤️</span><strong>11°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">20시</span><span>🌙</span><strong>9°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">21시</span><span>🌙</span><strong>8°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">22시</span><span>🌙</span><strong>6°</strong></div>
+        <div class="hour"><span style="color:#A2ADC8">23시</span><span>🌙</span><strong>5°</strong></div>
+      </div>
+      <div class="divider"></div>
+      <div class="small">날씨 수치는 조회된 예보를 참고한 예시입니다. 입력한 온도는 게임 속도에만 적용됩니다.</div>
+      <div style="margin-top:9px"><a href="https://www.weather.go.kr/w/forecast/overall/short-term.do?stnId=109" target="_blank" rel="noopener noreferrer">기상청 예보 확인 ↗</a></div>
+    </aside>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+const root=document.getElementById('temp-brick-game');
+const cv=root.querySelector('#tb-canvas'),ctx=cv.getContext('2d'),W=900,H=560;
+const $=id=>document.getElementById(id);
+const scoreEl=$('tb-score'),livesEl=$('tb-lives'),levelEl=$('tb-level'),speedEl=$('tb-speed'),speedPercent=$('tb-speed-percent'),speedBar=$('tb-speedbar'),effectEl=$('tb-effect'),statusEl=$('tb-status'),startBtn=$('tb-start'),tempInput=$('tb-temperature'),tempDisplay=$('tb-temp-display'),tempMessage=$('tb-temp-message');
+const palette=['#53E6F5','#6CA8FF','#9B89FF','#D88BFF','#FF80B4','#FFAE80','#F4D56B'];
+const paddle={x:450,y:512,w:122,h:13,speed:610},ball={x:450,y:480,r:8,vx:0,vy:0,speed:355};
+let score=0,lives=3,level=1,state='ready',bricks=[],particles=[],stars=[],keys=new Set(),last=0,elapsed=0,playTime=0,banner=0,appliedTemp=12;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+for(let i=0;i<65;i++)stars.push({x:(i*173+23)%897+1,y:(i*97+11)%555+1,r:(i%3)*.48+.4,a:.15+(i%6)*.09});
+function weatherFactor(){return appliedTemp>=25?1.25:appliedTemp<=10?.75:1}
+function timeFactor(){return Math.min(2,1+playTime/60)}
+function multiplier(){return weatherFactor()*timeFactor()}
+function msg(t){statusEl.textContent=t}
+function ui(){scoreEl.textContent=String(score).padStart(5,'0');livesEl.textContent=lives?'♥ '.repeat(lives).trim():'—';levelEl.textContent=String(level).padStart(2,'0');const m=multiplier();speedEl.textContent=m.toFixed(2).replace(/0$/,'')+'×';speedPercent.textContent=Math.round(m*100)+'%';speedBar.style.width=(m/2.5*100)+'%';effectEl.textContent='온도: '+(appliedTemp>=25?'+25%':appliedTemp<=10?'−25%':'변화 없음')+' · 시간 보너스: '+timeFactor().toFixed(2).replace(/0$/,'')+'×';startBtn.textContent=state==='running'?'Ⅱ 일시정지':state==='paused'?'▶ 계속하기':state==='gameover'?'↻ 다시 도전':'▶ 게임 시작'}
+function makeBricks(){bricks=[];const cols=11,rows=Math.min(5+level,8),gap=9,bw=(W-84-gap*(cols-1))/cols,bh=22;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)bricks.push({x:42+c*(bw+gap),y:66+r*32,w:bw,h:bh,color:palette[(r+level-1)%palette.length],alive:true})}
+function attach(){ball.x=paddle.x;ball.y=paddle.y-ball.r-3;ball.vx=ball.vy=0;ball.speed=355+(level-1)*27}
+function reset(){score=0;lives=3;level=1;state='ready';playTime=0;paddle.x=450;particles=[];banner=0;makeBricks();attach();ui();msg('공을 발사해 벽돌을 깨 보세요!');draw()}
+function launch(){if(state==='ready'){const angle=(paddle.x/W-.5)*.85-.14,sp=ball.speed*multiplier();ball.vx=sp*Math.sin(angle);ball.vy=-sp*Math.cos(angle);state='running';msg('게임 시작! 온도와 플레이 시간에 따라 속도가 바뀝니다.')}else if(state==='paused'){state='running';msg('게임을 계속합니다.')}else if(state==='running'){state='paused';msg('일시정지 중 — 계속하기를 누르세요.')}else if(state==='gameover'){reset();launch();return}ui()}
+function applyTemperature(){const raw=tempInput.value.trim(),t=Number(raw);if(raw===''||!Number.isFinite(t)||t< -50||t>60){tempMessage.textContent='−50°C부터 60°C 사이의 온도를 입력해 주세요.';return}appliedTemp=t;tempDisplay.textContent=(t<0?'−':'')+Math.abs(t)+'°';const effect=t>=25?'속도 +25% 적용!':t<=10?'속도 −25% 적용!':'속도 변화 없음';tempMessage.textContent=(t<0?'−':'')+Math.abs(t)+'°C 적용 · '+effect;ui();msg((t<0?'−':'')+Math.abs(t)+'°C 적용 · 게임 속도에 즉시 반영됩니다.')}
+$('tb-apply-temp').addEventListener('click',applyTemperature);tempInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyTemperature()}});
+function pointerMove(e){const r=cv.getBoundingClientRect();paddle.x=clamp((e.clientX-r.left)/r.width*W,paddle.w/2,W-paddle.w/2);if(state==='ready')attach()}
+cv.addEventListener('pointermove',pointerMove);cv.addEventListener('pointerdown',e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}pointerMove(e);if(state==='ready'||state==='paused')launch()});cv.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('keydown',e=>{if(e.target===tempInput)return;if(['ArrowLeft','ArrowRight',' ','Spacebar'].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.repeat)return;if(e.code==='Space'||e.key===' ')launch();if(e.key.toLowerCase()==='p'&&(state==='running'||state==='paused'))launch();if(e.key.toLowerCase()==='r')reset()});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>keys.clear());startBtn.addEventListener('click',launch);$('tb-reset').addEventListener('click',reset);
+function burst(x,y,color){for(let i=0;i<9;i++){const a=Math.random()*Math.PI*2,s=45+Math.random()*160;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.32+Math.random()*.42,max:.74,color,r:2+Math.random()*2.2})}}
+function next(){level++;makeBricks();paddle.x=450;attach();state='ready';banner=1.6;msg('레벨 '+level+'! 속도 '+multiplier().toFixed(2)+'배. 다시 발사하세요.');ui()}
+function update(dt){elapsed+=dt;banner=Math.max(0,banner-dt);if(keys.has('arrowleft')||keys.has('a'))paddle.x-=paddle.speed*dt;if(keys.has('arrowright')||keys.has('d'))paddle.x+=paddle.speed*dt;paddle.x=clamp(paddle.x,paddle.w/2,W-paddle.w/2);if(state==='ready'){attach();return}if(state!=='running')return;playTime+=dt;const targetSpeed=ball.speed*multiplier(),currentSpeed=Math.hypot(ball.vx,ball.vy);if(currentSpeed>0){const scale=targetSpeed/currentSpeed;ball.vx*=scale;ball.vy*=scale}ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;if(ball.x-ball.r<0){ball.x=ball.r;ball.vx=Math.abs(ball.vx)}if(ball.x+ball.r>W){ball.x=W-ball.r;ball.vx=-Math.abs(ball.vx)}if(ball.y-ball.r<0){ball.y=ball.r;ball.vy=Math.abs(ball.vy)}if(ball.y-ball.r>H){lives--;if(!lives){lives=0;state='gameover';msg('게임 종료! '+score+'점 — 다시 도전해 보세요.')}else{state='ready';attach();msg('공을 놓쳤어요. 남은 목숨 '+lives+'개! 다시 발사하세요.')}ui();return}const px=paddle.x-paddle.w/2;if(ball.vy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&ball.x>=px-2&&ball.x<=px+paddle.w+2){ball.y=paddle.y-ball.r-.2;const hit=clamp((ball.x-paddle.x)/(paddle.w/2),-.96,.96),sp=Math.hypot(ball.vx,ball.vy),angle=hit*1.02;ball.vx=sp*Math.sin(angle);ball.vy=-Math.abs(sp*Math.cos(angle));burst(ball.x,ball.y,'#6DEBFA')}for(const b of bricks){if(!b.alive)continue;const cx=clamp(ball.x,b.x,b.x+b.w),cy=clamp(ball.y,b.y,b.y+b.h),dx=ball.x-cx,dy=ball.y-cy;if(dx*dx+dy*dy<ball.r*ball.r){b.alive=false;score+=10;burst(cx,cy,b.color);const ox=ball.r+b.w/2-Math.abs(ball.x-(b.x+b.w/2)),oy=ball.r+b.h/2-Math.abs(ball.y-(b.y+b.h/2));if(ox<oy)ball.vx*=-1;else ball.vy*=-1;break}}for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=Math.max(0,1-2*dt);p.vy*=Math.max(0,1-2*dt);if(p.life<=0)particles.splice(i,1)}if(bricks.every(b=>!b.alive))next();ui()}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+function draw(){ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0B1228');bg.addColorStop(1,'#070B19');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.lineWidth=1;ctx.strokeStyle='rgba(104,147,207,.065)';for(let x=20;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=20;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}for(const s of stars){ctx.globalAlpha=s.a*(.72+.28*Math.sin(elapsed*1.4+s.x));ctx.fillStyle='#B8DDFC';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;for(const b of bricks){if(!b.alive)continue;ctx.shadowBlur=10;ctx.shadowColor=b.color+'50';rr(b.x,b.y,b.w,b.h,5);ctx.fillStyle=b.color;ctx.fill();ctx.shadowBlur=0;rr(b.x+3,b.y+3,b.w-6,3,1.5);ctx.fillStyle='rgba(255,255,255,.3)';ctx.fill()}const g=ctx.createLinearGradient(paddle.x-paddle.w/2,paddle.y,paddle.x+paddle.w/2,paddle.y+paddle.h);g.addColorStop(0,'#A9FBFF');g.addColorStop(.5,'#5DE6F3');g.addColorStop(1,'#7C9BFF');ctx.shadowBlur=22;ctx.shadowColor='#55E4F4';rr(paddle.x-paddle.w/2,paddle.y,paddle.w,paddle.h,7);ctx.fillStyle=g;ctx.fill();ctx.shadowBlur=0;const rg=ctx.createRadialGradient(ball.x-2,ball.y-3,1,ball.x,ball.y,ball.r*2.8);rg.addColorStop(0,'rgba(105,244,255,.44)');rg.addColorStop(1,'rgba(105,244,255,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r*2.8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=16;ctx.shadowColor='#9CFAFF';ctx.fillStyle='#E7FFFF';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;if(banner>0){ctx.globalAlpha=Math.min(1,banner*2);ctx.fillStyle='rgba(5,11,29,.82)';rr(W/2-145,H/2-28,290,56,13);ctx.fill();ctx.strokeStyle='#73EAF7';ctx.lineWidth=1.5;rr(W/2-145,H/2-28,290,56,13);ctx.stroke();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 22px system-ui';ctx.fillStyle='#92F5FF';ctx.fillText('LEVEL '+String(level).padStart(2,'0'),W/2,H/2);ctx.globalAlpha=1}if(state==='ready'||state==='paused'||state==='gameover'){ctx.fillStyle='rgba(5,9,23,.76)';ctx.fillRect(0,0,W,H);const bw=350,bh=state==='gameover'?150:126;rr(W/2-bw/2,H/2-bh/2,bw,bh,16);ctx.fillStyle='#10182D';ctx.fill();ctx.strokeStyle='#354363';ctx.lineWidth=1.5;rr(W/2-bw/2,H/2-bh/2,bw,bh,16);ctx.stroke();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 24px system-ui';ctx.fillStyle=state==='gameover'?'#FF8BAF':state==='paused'?'#C7B3FF':'#78F0FC';ctx.fillText(state==='gameover'?'GAME OVER':state==='paused'?'PAUSED':'READY?',W/2,H/2-bh/2+37);ctx.font='500 13px system-ui';ctx.fillStyle='#ADB9D5';ctx.fillText(state==='gameover'?'최종 점수 '+score+'점':state==='paused'?'게임이 잠시 멈췄어요':'시작 버튼 또는 스페이스를 누르세요',W/2,H/2-bh/2+69);if(state==='ready'){ctx.font='600 11px system-ui';ctx.fillStyle='#647390';ctx.fillText((appliedTemp<0?'−':'')+Math.abs(appliedTemp)+'°C · 온도 효과 '+(appliedTemp>=25?'+25%':appliedTemp<=10?'−25%':'없음'),W/2,H/2-bh/2+93)}}}
+function frame(t){if(!root.isConnected)return;const dt=last?Math.min((t-last)/1000,.025):0;last=t;update(dt);draw();requestAnimationFrame(frame)}
+reset();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
